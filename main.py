@@ -69,6 +69,15 @@ class emulator():
                     case "0x8":
                         self.pointer += 1
                         self.writecache()
+                    case "0x9":
+                        self.pointer += 1
+                        self.cmp()
+                    case "0xa":
+                        self.pointer += 1
+                        self.jie()
+                    case "0xb":
+                        self.pointer += 1
+                        self.jin()
                 self.pointer += 1
                 self.Registers = [
                     self.ah,
@@ -224,6 +233,33 @@ class emulator():
         elif typ == "0x2":
             self.res = self.getcacheentry()
         self.cache[address] = self.res
+    def cmp(self):
+        entry = self.getregister()
+        self.pointer += 1
+        typ = hex(self.cache[self.pointer])
+        self.pointer += 1
+        if typ == "0x0":
+            self.res = self.cache[self.pointer]
+        elif typ == "0x1":
+            self.res = self.getregister()
+        elif typ == "0x2":
+            self.res = self.getcacheentry()
+        if entry == self.res:
+            self.rh = 1
+        else:
+            self.rh = 0
+    def jie(self):
+        # JIE -> Jump if equal
+        if self.rh == 1:
+            self.jmp()
+        else:
+            self.pointer += 1
+    def jin(self):
+        # JIN -> Jump if not equal
+        if self.rh == 0:
+            self.jmp() 
+        else:
+            self.pointer += 1
     def setregister(self):
         if self.register == 0:
             self.ah = self.res
