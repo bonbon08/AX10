@@ -66,6 +66,9 @@ class emulator():
                     case "0x7":
                         self.pointer += 1
                         self.wait()
+                    case "0x8":
+                        self.pointer += 1
+                        self.writecache()
                 self.pointer += 1
                 self.Registers = [
                     self.ah,
@@ -207,8 +210,20 @@ class emulator():
         elif typ == "0x1":
             self.res = registerentey * self.getregister()
         elif typ == "0x2":
-            self.res = round(registerentey / self.getcacheentry())
+            self.res = registerentey * self.getcacheentry()
         self.setregister()
+    def writecache(self):
+        address = self.cache[self.pointer]
+        self.pointer += 1
+        typ = hex(self.cache[self.pointer])
+        self.pointer += 1
+        if typ == "0x0":
+            self.res = self.cache[self.pointer]
+        elif typ == "0x1":
+            self.res = self.getregister()
+        elif typ == "0x2":
+            self.res = self.getcacheentry()
+        self.cache[address] = self.res
     def setregister(self):
         if self.register == 0:
             self.ah = self.res
