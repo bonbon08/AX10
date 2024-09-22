@@ -42,30 +42,29 @@ class emulator():
                 print("DL: " + str(self.dl))
                 print("RH: " + str(self.rh))
                 print("RL: " + str(self.rl))
-                match command:
-                    case "0x0":
-                        raise Exception("Socket Panick\nHalted emu")
-                    case "0x1":
-                        self.pointer += 1
-                        self.mov()
-                    case "0x2":
-                        self.pointer += 1
-                        self.add()
-                    case "0x3":
-                        self.pointer += 1
-                        self.sub()
-                    case "0x4":
-                        self.pointer += 1
-                        self.div()
-                    case "0x5":
-                        self.pointer += 1
-                        self.mul()
-                    case "0x6":
-                        self.pointer += 1
-                        self.jmp()
-                    case "0x7":
-                        self.pointer += 1
-                        self.wait()
+                if command == "0x0":
+                    raise Exception("Socket Panick\nHalted emu")
+                elif command == "0x1":
+                    self.pointer += 1
+                    self.mov()
+                elif command == "0x2":
+                    self.pointer += 1
+                    self.add()
+                elif command == "0x3":
+                    self.pointer += 1
+                    self.sub()
+                elif command == "0x4":
+                    self.pointer += 1
+                    self.div()
+                elif command == "0x5":
+                    self.pointer += 1
+                    self.mul()
+                elif command == "0x6":
+                    self.pointer += 1
+                    self.jmp()
+                elif command == "0x7":
+                    self.pointer += 1
+                    self.wait()
                 self.pointer += 1
                 self.Registers = [
                     self.ah,
@@ -81,57 +80,13 @@ class emulator():
                 ]
                 for i in range(self.pointer,len(self.cache)):
                     print(self.cache[i], end = " ")
-                self.check8bit()
+                #self.check8bit()
         except Exception as error:
             print("Emulator Panicked, error:\n" + str(error))
     def check8bit(self):
-        for i in range(len(self.Registers)):
-            while self.Registers[i] > 255:
-                self.Registers[i] -= 255
-                match i:
-                    case 0 :
-                        self.ah -= 128
-                    case 1 :
-                        self.al -= 128
-                    case 2 :
-                        self.bh -= 128
-                    case 3 :
-                        self.bl -= 128
-                    case 4 :
-                        self.ch -= 128
-                    case 5 :
-                        self.cl -= 128
-                    case 6 :
-                        self.dh -= 128
-                    case 7 :
-                        self.dl -= 128
-                    case 8 :
-                        self.rh -= 128
-                    case 9 :
-                        self.rl -= 128
-            while self.Registers[i] < 0:
-                self.Registers[i] -= self.Registers[i]*2
-                match i:
-                    case 0 :
-                        self.ah -= self.ah*2
-                    case 1 :
-                        self.al -= self.al*2
-                    case 2 :
-                        self.bh -= self.bh*2
-                    case 3 :
-                        self.bl -= self.bl*2
-                    case 4 :
-                        self.ch -= self.ch*2
-                    case 5 :
-                        self.cl -= self.cl*2
-                    case 6 :
-                        self.dh -= self.dh*2
-                    case 7 :
-                        self.dl -= self.dl*2
-                    case 8 :
-                        self.rh -= self.rh*2
-                    case 9 :
-                        self.rl -= self.rl*2
+        for i in self.Registers:
+            if i > 255:
+                raise Exception("Register to big")
     def wait(self):
         time.sleep(self.cache[self.pointer])
     def jmp(self):
@@ -155,7 +110,7 @@ class emulator():
         elif typ == "0x2":
             self.res = self.getregister()
         elif typ == "0x3":
-            self.res = self.getcacheentry()
+            pass # cache address
         self.setregister()
     def add(self):
         self.register = self.cache[self.pointer]
@@ -168,7 +123,7 @@ class emulator():
         elif typ == "0x1":
             self.res = registerentey + self.getregister()
         elif typ == "0x2":
-            self.res = registerentey + self.getcacheentry()
+            pass # cache address
         self.setregister()
     def sub(self):
         self.register = self.cache[self.pointer]
@@ -181,7 +136,7 @@ class emulator():
         elif typ == "0x1":
             self.res = registerentey - self.getregister()
         elif typ == "0x2":
-            self.res = registerentey - self.getcacheentry()
+            pass # cache address
         self.setregister()
     def div(self):
         self.register = self.cache[self.pointer]
@@ -194,7 +149,7 @@ class emulator():
         elif typ == "0x1":
             self.res = round(registerentey / self.getregister())
         elif typ == "0x2":
-            self.res = round(registerentey / self.getcacheentry())
+            pass # cache address
         self.setregister()
     def mul(self):
         self.register = self.cache[self.pointer]
@@ -207,7 +162,7 @@ class emulator():
         elif typ == "0x1":
             self.res = registerentey * self.getregister()
         elif typ == "0x2":
-            self.res = round(registerentey / self.getcacheentry())
+            pass # cache address
         self.setregister()
     def setregister(self):
         if self.register == 0:
@@ -252,9 +207,7 @@ class emulator():
             return self.rh 
         elif register == 9:
             return self.rl 
-    def getcacheentry(self):
-        return self.cache[self.cache[self.pointer]]
     def close(self):
         exit()
-emu = emulator("test2")
+emu = emulator("test")
 emu.run()
