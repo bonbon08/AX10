@@ -3,6 +3,7 @@ import time
 class emulator():
     def __init__(self, script):
         print("AX10 emu \nv0l-bootup\n")
+        print("MasterBIOS Boot-Output-Input-System v0.1")
         print("Init Stack")
         self.stack = []
         print("Init Registers")
@@ -18,19 +19,31 @@ class emulator():
         self.rl = 0
         print("Init Pointer")
         self.pointer = 0
-        print("Init cache")
+        print("Init Ram")
+        self.ram = []
+        for _ in range(254):
+            for _ in range(254):
+                self.ram.append(0)
+        print("Installed Ram: " + str(len(self.ram)) + " bytes")
+        #print(self.ram)
+        print("Init Cache")
         with open(script, "rb") as file:
             cache = file.read()
-        self.cache = []
-        print("cache entry;")
-        for byte in cache:
-            print(hex(byte), end=" ")
-            self.cache.append(byte)
-        print("\n")
+        print("Cache entry;")
+        if len(cache) <= 255:
+            for i in range(len(cache)):
+                print(hex(cache[i]), end=" ")
+                self.ram[i] = cache[i]
+            print("\n")
+        else:
+            for i in range(254):
+                print(hex(cache[i]), end=" ")
+                self.ram[i] = cache[i]
+            print("\n")
     def run(self):
         try:
             while True:
-                command = hex(self.cache[self.pointer])
+                command = hex(self.ram[self.pointer])
                 print("Command: " + str(command))
                 print("AH: " + str(self.ah))
                 print("AL: " + str(self.al))
@@ -68,7 +81,7 @@ class emulator():
                         self.wait()
                     case "0x8":
                         self.pointer += 1
-                        self.writecache()
+                        self.writeram()
                     case "0x9":
                         self.pointer += 1
                         self.cmp()
@@ -91,8 +104,8 @@ class emulator():
                     self.rh,
                     self.rl
                 ]
-                for i in range(self.pointer,len(self.cache)):
-                    print(self.cache[i], end = " ")
+                for i in range(self.pointer,254):
+                    print(self.ram[i], end = " ")
                 self.check8bit()
         except Exception as error:
             print("Emulator Panicked, error:\n" + str(error))
@@ -145,105 +158,105 @@ class emulator():
                     case 9 :
                         self.rl -= self.rl*2
     def wait(self):
-        time.sleep(self.cache[self.pointer])
+        time.sleep(self.ram[self.pointer])
     def jmp(self):
-        byte_num = self.cache[self.pointer]
+        byte_num = self.ram[self.pointer]
         self.pointer += 1
         new_pointer = 0
         for i in range(byte_num):
-            new_pointer = (new_pointer << 8) | self.cache[self.pointer]
+            new_pointer = (new_pointer << 8) | self.ram[self.pointer]
             self.pointer += 1
         self.pointer = new_pointer - 1 
         print(f"Jumping to address: {hex(new_pointer)}")
     def mov(self):
-        self.register = self.cache[self.pointer]
+        self.register = self.ram[self.pointer]
         self.pointer += 1
-        typ = hex(self.cache[self.pointer])
+        typ = hex(self.ram[self.pointer])
         self.pointer += 1
         if typ == "0x0":
-            self.res = self.cache[self.pointer]
+            self.res = self.ram[self.pointer]
         elif typ == "0x1":
             pass # Charakter Map
         elif typ == "0x2":
             self.res = self.getregister()
         elif typ == "0x3":
-            self.res = self.getcacheentry()
+            self.res = self.getramentry()
         self.setregister()
     def add(self):
-        self.register = self.cache[self.pointer]
+        self.register = self.ram[self.pointer]
         registerentey = self.getregister()
         self.pointer += 1
-        typ = hex(self.cache[self.pointer])
+        typ = hex(self.ram[self.pointer])
         self.pointer += 1
         if typ == "0x0":
-            self.res = registerentey + self.cache[self.pointer]
+            self.res = registerentey + self.ram[self.pointer]
         elif typ == "0x1":
             self.res = registerentey + self.getregister()
         elif typ == "0x2":
-            self.res = registerentey + self.getcacheentry()
+            self.res = registerentey + self.getramentry()
         self.setregister()
     def sub(self):
-        self.register = self.cache[self.pointer]
+        self.register = self.ram[self.pointer]
         registerentey = self.getregister()
         self.pointer += 1
-        typ = hex(self.cache[self.pointer])
+        typ = hex(self.ram[self.pointer])
         self.pointer += 1
         if typ == "0x0":
-            self.res = registerentey - self.cache[self.pointer]
+            self.res = registerentey - self.ram[self.pointer]
         elif typ == "0x1":
             self.res = registerentey - self.getregister()
         elif typ == "0x2":
-            self.res = registerentey - self.getcacheentry()
+            self.res = registerentey - self.getramentry()
         self.setregister()
     def div(self):
-        self.register = self.cache[self.pointer]
+        self.register = self.ram[self.pointer]
         registerentey = self.getregister()
         self.pointer += 1
-        typ = hex(self.cache[self.pointer])
+        typ = hex(self.ram[self.pointer])
         self.pointer += 1
         if typ == "0x0":
-            self.res = round(registerentey / self.cache[self.pointer])
+            self.res = round(registerentey / self.ram[self.pointer])
         elif typ == "0x1":
             self.res = round(registerentey / self.getregister())
         elif typ == "0x2":
-            self.res = round(registerentey / self.getcacheentry())
+            self.res = round(registerentey / self.getramentry())
         self.setregister()
     def mul(self):
-        self.register = self.cache[self.pointer]
+        self.register = self.ram[self.pointer]
         registerentey = self.getregister()
         self.pointer += 1
-        typ = hex(self.cache[self.pointer])
+        typ = hex(self.ram[self.pointer])
         self.pointer += 1
         if typ == "0x0":
-            self.res = registerentey * self.cache[self.pointer]
+            self.res = registerentey * self.ram[self.pointer]
         elif typ == "0x1":
             self.res = registerentey * self.getregister()
         elif typ == "0x2":
-            self.res = registerentey * self.getcacheentry()
+            self.res = registerentey * self.getramentry()
         self.setregister()
-    def writecache(self):
-        address = self.cache[self.pointer]
+    def writeram(self):
+        address = self.ram[self.pointer]
         self.pointer += 1
-        typ = hex(self.cache[self.pointer])
+        typ = hex(self.ram[self.pointer])
         self.pointer += 1
         if typ == "0x0":
-            self.res = self.cache[self.pointer]
+            self.res = self.ram[self.pointer]
         elif typ == "0x1":
             self.res = self.getregister()
         elif typ == "0x2":
-            self.res = self.getcacheentry()
-        self.cache[address] = self.res
+            self.res = self.getramentry()
+        self.ram[address] = self.res
     def cmp(self):
         entry = self.getregister()
         self.pointer += 1
-        typ = hex(self.cache[self.pointer])
+        typ = hex(self.ram[self.pointer])
         self.pointer += 1
         if typ == "0x0":
-            self.res = self.cache[self.pointer]
+            self.res = self.ram[self.pointer]
         elif typ == "0x1":
             self.res = self.getregister()
         elif typ == "0x2":
-            self.res = self.getcacheentry()
+            self.res = self.getramentry()
         if entry == self.res:
             self.rh = 1
         else:
@@ -282,7 +295,7 @@ class emulator():
         elif self.register == 9:
             self.rl = self.res
     def getregister(self):
-        register = self.cache[self.pointer]
+        register = self.ram[self.pointer]
         if register == 0:
             return self.ah
         elif register == 1:
@@ -303,9 +316,9 @@ class emulator():
             return self.rh 
         elif register == 9:
             return self.rl 
-    def getcacheentry(self):
-        return self.cache[self.cache[self.pointer]]
+    def getramentry(self):
+        return self.ram[self.ram[self.pointer]]
     def close(self):
         exit()
-emu = emulator("test2")
+emu = emulator("test")
 emu.run()
