@@ -209,5 +209,5 @@ class emulator():
             return self.rl 
     def close(self):
         exit()
-emu = emulator("test")
+emu = emulator("demos/test")
 emu.run()

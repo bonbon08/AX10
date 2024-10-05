@@ -320,5 +320,5 @@ class emulator():
         return self.ram[self.ram[self.pointer]]
     def close(self):
         exit()
-emu = emulator("test")
+emu = emulator("demos/test")
 emu.run()
