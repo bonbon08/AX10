@@ -288,6 +288,6 @@ impl Emulator {
 }
 
 fn main() {
-    let mut emu = Emulator::new("demos/no_timer");
+    let mut emu = Emulator::new("out.bin");
     emu.run();
 }
