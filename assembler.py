@@ -63,7 +63,7 @@ for line in lines:
     entrys = line.split(" ")
     match entrys[0]:
         case "stp":
-            outfile.writable(b"\x00")
+            outfile.write(b"\x00")
         case "mov":
             outfile.write(b"\x01")
             outfile.write(getregister(entrys[1]))
@@ -96,7 +96,8 @@ for line in lines:
             outfile.write(t2)
         case "jmp":
             outfile.write(b"\x06")
-            outfile.write(int(entrys[1]).to_bytes(1, byteorder="big"))
+            for i in range(1, len(entrys)):
+                outfile.write(int(entrys[i]).to_bytes(1, byteorder="big"))
         case "sle":
             outfile.write(b"\x07")
             outfile.write(int(entrys[1]).to_bytes(1, byteorder="big"))
@@ -114,7 +115,9 @@ for line in lines:
             outfile.write(t2)
         case "jie":
             outfile.write(b"\x0a")
-            outfile.write(int(entrys[1]).to_bytes(1, byteorder="big"))
+            for i in range(1, len(entrys)):
+                outfile.write(int(entrys[i]).to_bytes(1, byteorder="big"))
         case "jin":
             outfile.write(b"\x0b")
-            outfile.write(int(entrys[1]).to_bytes(1, byteorder="big"))
+            for i in range(1, len(entrys)):
+                outfile.write(int(entrys[i]).to_bytes(1, byteorder="big"))

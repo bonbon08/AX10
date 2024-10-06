@@ -1,0 +1,23 @@
+mov bl int 6
+mov ch int 9
+mov cl int 12
+mov ah reg bl
+mov al reg ch
+mov bh reg cl
+mul al int 4
+mov ah reg al
+mov al reg ch
+mul bh int 2
+add ah reg bh
+mov bh reg ch
+mov al reg bl
+div al int 3
+mov bh reg ch
+div bh int 3
+mov bl reg ah
+mov ch reg al
+mov cl reg bh
+add rh int 1
+sle 2
+jmp 1 12
+stp
