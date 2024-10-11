@@ -1,0 +1,12 @@
+red: to_8 4bit
+green: to_8 4bit
+blue: to_8 4bit
+rgb: 16*16*16 = 4096
+red_rgb = (red+1)*32
+green_rgb = (green+1)*32
+blue_rgb = (blue+1)*32
+unicode: 8bit 256 ascii
+x: 5bit 
+y: 5bit
+64x64
+insgesamt: 5+5+4+4+4+8 = 30  30/16=//2
