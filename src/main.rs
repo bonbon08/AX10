@@ -16,7 +16,7 @@ impl Emulator {
         println!("MasterBIOS Boot-Output-Input-System v0.1");
         println!("Init Stack");
 
-        let mut stack = Vec::new();
+        let stack = Vec::new();
 
         println!("Init Registers");
 
@@ -163,13 +163,11 @@ impl Emulator {
             0x2 => self.get_ram_entry(),     
             _ => 0,               
         };
-        println!("{}", res);
         self.stack.push(res);
     }
     fn pullreg(&mut self) {
         let register = self.ram[self.pointer] as usize;
         let res: u8  = self.stack.pop().expect("");
-        println!("{}", res);
         self.set_register(register, res);
     } 
 
