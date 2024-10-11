@@ -8,6 +8,7 @@ struct Emulator {
     ram: Vec<u8>,
     pointer: usize,
     rh: u8,
+    debug: bool,
 }
 
 impl Emulator {
@@ -55,23 +56,30 @@ impl Emulator {
             ram,
             pointer,
             rh: 0,
+            debug: false,
         }
+    }
+
+    fn enable_debug(&mut self) {
+        self.debug = true;
     }
 
     fn run(&mut self) {
         loop {
             let command = self.ram[self.pointer];
-            println!("Command: 0x{:x}", command);
-            println!("AH: {}", self.registers[0]);
-            println!("AL: {}", self.registers[1]);
-            println!("BH: {}", self.registers[2]);
-            println!("BL: {}", self.registers[3]);
-            println!("CH: {}", self.registers[4]);
-            println!("CL: {}", self.registers[5]);
-            println!("DH: {}", self.registers[6]);
-            println!("DL: {}", self.registers[7]);
-            println!("RH: {}", self.registers[8]);
-            println!("RL: {}", self.registers[9]);
+            if self.debug==true {
+                println!("Command: 0x{:x}", command);
+                println!("AH: {}", self.registers[0]);
+                println!("AL: {}", self.registers[1]);
+                println!("BH: {}", self.registers[2]);
+                println!("BL: {}", self.registers[3]);
+                println!("CH: {}", self.registers[4]);
+                println!("CL: {}", self.registers[5]);
+                println!("DH: {}", self.registers[6]);
+                println!("DL: {}", self.registers[7]);
+                println!("RH: {}", self.registers[8]);
+                println!("RL: {}", self.registers[9]);
+            }
 
             match command {
                 0x0 => {
@@ -314,5 +322,7 @@ impl Emulator {
 
 fn main() {
     let mut emu = Emulator::new("out.bin");
+    #[cfg(debug_assertions)]
+    emu.enable_debug();
     emu.run();
 }
