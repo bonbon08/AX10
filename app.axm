@@ -1,3 +1,12 @@
+push int 27
 mov ah int 4
+pull ah
 add ah int 8
+push int 8
+push int 9
+pull ah
 mov bh reg ah
+pull ah
+push reg ah
+push reg bh
+pull ah

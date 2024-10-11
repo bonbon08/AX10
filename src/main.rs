@@ -122,6 +122,14 @@ impl Emulator {
                     self.pointer += 1;
                     self.jin();
                 }
+                0xC => {
+                    self.pointer += 1;
+                    self.pushreg();
+                }
+                0xD => {
+                    self.pointer += 1;
+                    self.pullreg();
+                }
                 _ => {
                     println!("Unknown command");
                 }
@@ -145,6 +153,25 @@ impl Emulator {
         self.pointer = new_pointer - 1;
         println!("Jumping to address: 0x{:x}", new_pointer);
     }
+
+    fn pushreg(&mut self) {
+        let typ = self.ram[self.pointer];
+        self.pointer += 1;
+        let res = match typ {
+            0x0 => self.ram[self.pointer],        
+            0x1 => self.get_register(),    
+            0x2 => self.get_ram_entry(),     
+            _ => 0,               
+        };
+        println!("{}", res);
+        self.stack.push(res);
+    }
+    fn pullreg(&mut self) {
+        let register = self.ram[self.pointer] as usize;
+        let res: u8  = self.stack.pop().expect("");
+        println!("{}", res);
+        self.set_register(register, res);
+    } 
 
     fn mov(&mut self) {
         let register = self.ram[self.pointer] as usize;

@@ -121,3 +121,11 @@ for line in lines:
             outfile.write(b"\x0b")
             for i in range(1, len(entrys)):
                 outfile.write(int(entrys[i]).to_bytes(1, byteorder="big"))
+        case "push":
+            outfile.write(b"\x0c")
+            t1, t2 = gettypeandcontent(entrys[1], entrys[2])
+            outfile.write(t1)
+            outfile.write(t2)
+        case "pull":
+            outfile.write(b"\x0d")
+            outfile.write(getregister(entrys[1]))
