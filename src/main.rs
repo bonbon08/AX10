@@ -11,6 +11,13 @@ struct Emulator {
     debug: bool,
 }
 
+struct grafic_processor<'a> {
+    name: &'a str,
+    cores: u8,
+    mem: Vec<u8>,
+    memsize: u8,
+}
+
 impl Emulator {
     fn new(script: &str) -> Emulator {
         println!("AX10 emu \nv0l-bootup\n");
@@ -319,6 +326,18 @@ impl Emulator {
         }
     }
 }
+
+impl grafic_processor {
+    fn init(&mut self) -> u8{
+        return 0;
+    }
+    fn coreinfo(&mut self) -> Vec<u8>{
+        let name: &str = "Vgpu";
+        let memsize: u8 = 23040;
+        let mem: Vec<u8> = vec![0; 23040];
+    }
+}
+
 
 fn main() {
     let mut emu = Emulator::new("out.bin");
