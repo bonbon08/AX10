@@ -1,6 +1,8 @@
 use std::fs::File;
 use std::io::Read;
 use std::{thread, time::Duration};
+use std::io::prelude::*;
+use std::net::TcpStream;
 
 struct Emulator {
     stack: Vec<u8>,
@@ -11,11 +13,11 @@ struct Emulator {
     debug: bool,
 }
 
-struct grafic_processor<'a> {
-    name: &'a str,
+struct grafic_processor {
     cores: u8,
     mem: Vec<u8>,
-    memsize: u8,
+    memsize: u64,
+    stream: TcpStream,
 }
 
 impl Emulator {
@@ -328,18 +330,21 @@ impl Emulator {
 }
 
 impl grafic_processor {
-    fn init(&mut self) -> u8{
-        return 0;
-    }
-    fn coreinfo(&mut self) -> Vec<u8>{
-        let name: &str = "Vgpu";
-        let memsize: u8 = 23040;
-        let mem: Vec<u8> = vec![0; 23040];
+    fn new() -> grafic_processor{
+        let mut stream: TcpStream = TcpStream::connect("127.0.0.1:44523").expect("Error in connecting to Display-Server");
+        let mut gpu = grafic_processor {
+            memsize: 23040,
+            cores: 1,
+            mem: vec![0; 23040],
+            stream: stream,
+        };
+        gpu
     }
 }
 
 
 fn main() {
+    let mut gpu = grafic_processor::new();
     let mut emu = Emulator::new("out.bin");
     #[cfg(debug_assertions)]
     emu.enable_debug();
