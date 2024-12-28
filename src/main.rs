@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::Read;
+use std::time;
 use std::{thread, time::Duration};
 use std::io::prelude::*;
 use std::net::TcpStream;
@@ -340,11 +341,32 @@ impl grafic_processor {
         };
         gpu
     }
+    fn paint_pixel(&mut self, x: u16, y: u16, color: &str) {
+        let message: String = format!("1 {} {} {}!", x, y, color);
+        self.stream.write(message.as_bytes()).expect("Server down");
+    }
+    fn clear_screen(&mut self) {
+        let message : String = "0 0 0 0!".to_owned();
+        self.stream.write(message.as_bytes()).expect("Server down");
+    }
+    
 }
 
 
 fn main() {
     let mut gpu = grafic_processor::new();
+    for i in 0..100{
+        for s in 0..100 {
+            gpu.paint_pixel(s, i, "38d161");
+        }
+    }
+    gpu.clear_screen();
+    for i in 20..100{
+        for s in 20..100 {
+            gpu.paint_pixel(s, i, "0d244a");
+        }
+    }
+    gpu.paint_pixel(2, 2, "38d161");
     let mut emu = Emulator::new("out.bin");
     #[cfg(debug_assertions)]
     emu.enable_debug();
