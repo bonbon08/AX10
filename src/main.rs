@@ -3,6 +3,7 @@ use std::io::Read;
 use std::{thread, time::Duration};
 use std::io::prelude::*;
 use std::net::TcpStream;
+use std::env;
 
 struct Emulator {
     stack: Vec<u8>,
@@ -11,19 +12,11 @@ struct Emulator {
     pointer: usize,
     rh: u8,
     debug: bool,
-    gpu: GraficProcessor
 }
 
-struct GraficProcessor {
-    cores: u8,
-    mem: Vec<u8>,
-    memsize: u64,
-    stream: TcpStream,
-    pointer: usize,
-}
 
 impl Emulator {
-    fn new(script: &str) -> Emulator {
+    fn new(script: &str, debug: bool) -> Emulator {
         println!("AX10 emu \nv0l-bootup\n");
         println!("MasterBIOS Boot-Output-Input-System v0.1");
         println!("Init Stack");
@@ -67,8 +60,7 @@ impl Emulator {
             ram,
             pointer,
             rh: 0,
-            debug: false,
-            gpu: GraficProcessor::new(),
+            debug: debug,
         }
     }
 
@@ -150,20 +142,19 @@ impl Emulator {
                     self.pointer += 1;
                     self.pullreg();
                 }
-                0xE => {
+/*                0xE => {
                     self.pointer += 1;
                     self.lgr();
                 }
                 0xF => {
                     self.pointer += 1;
                     self.rgp();
-                }
+                }*/
                 _ => {
                     println!("Unknown command");
                 }
             }
             self.pointer += 1;
-            self.gpu.run_proccess();
         }
     }
 
@@ -339,75 +330,13 @@ impl Emulator {
             self.pointer += 1;
         }
     }
-    fn lgr(&mut self) {
-        self.pointer += 1;
-        let nums_of_bit = self.ram[self.pointer];
-        self.pointer += 1;
-        for i in 0..nums_of_bit{
-            let i: usize = i.into();
-            self.gpu.mem[i] = self.ram[self.pointer+i]
-        } 
-        self.pointer += &nums_of_bit.into();
-    }
-    fn rgp(&mut self) {
-        self.pointer += 1;
-        self.gpu.pointer = 0;
-    }
-}
-
-impl GraficProcessor {
-    fn new() -> GraficProcessor{
-        let stream: TcpStream = TcpStream::connect("127.0.0.1:44523").expect("Error in connecting to Display-Server");
-        let gpu = GraficProcessor {
-            memsize: 23040,
-            cores: 1,
-            mem: vec![0; 23040],
-            stream: stream,
-            pointer: 0,
-        };
-        gpu
-    }
-    fn paint_pixel(&mut self) {
-        self.pointer += 1;
-        let x = self.mem[self.pointer];
-        self.pointer += 1;
-        let y = self.mem[self.pointer];
-        self.pointer += 1;
-        let r = self.mem[self.pointer];
-        self.pointer += 1;
-        let g = self.mem[self.pointer];
-        self.pointer += 1;
-        let b = self.mem[self.pointer];
-        let color = format!("{:X},{:X},{:X}", r, g,b);
-        let message: String = format!("1 {} {} {}!", x, y, color);
-        self.stream.write(message.as_bytes()).expect("Server down");
-    }
-    fn clear_screen(&mut self) {
-        let message : String = "0 0 0 0!".to_owned();
-        self.stream.write(message.as_bytes()).expect("Server down");
-    }
-    fn run_proccess(&mut self) {
-        let command = self.mem[self.pointer];
-        match command{
-            0x1 => {
-                self.clear_screen();
-            }
-            0x2 => {
-                self.paint_pixel();
-            }
-            _ => {
-                println!("Unknown command");
-            }
-        }
-        self.pointer +=1
-
-    }
 }
 
 
 fn main() {
-    let mut emu = Emulator::new("out.bin");
+    let args: Vec<String> = env::args().collect();
+    let debug = args.contains(&"--debug".to_string());
+    let mut emu = Emulator::new("out.bin", debug);
     #[cfg(debug_assertions)]
-    emu.enable_debug();
     emu.run();
 }
