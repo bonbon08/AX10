@@ -3,6 +3,8 @@ use std::io::Read;
 use std::{thread, time::Duration};
 use std::env;
 
+mod serial;
+
 struct Emulator {
     stack: Vec<u8>,
     registers: [u8; 10],
@@ -10,6 +12,7 @@ struct Emulator {
     pointer: usize,
     rh: u8,
     debug: bool,
+    term: serial::SerialTerminal,
 }
 
 
@@ -55,6 +58,7 @@ impl Emulator {
             }
         }
         println!("\n");
+        let term: serial::SerialTerminal =  serial::SerialTerminal::new(true, "AX10-chip".to_string());
 
         Emulator {
             stack,
@@ -63,6 +67,7 @@ impl Emulator {
             pointer,
             rh: 0,
             debug: debug,
+            term: term,
         }
     }
 
