@@ -1,8 +1,6 @@
 use std::fs::File;
 use std::io::Read;
 use std::{thread, time::Duration};
-use std::io::prelude::*;
-use std::net::TcpStream;
 use std::env;
 
 struct Emulator {
@@ -17,38 +15,42 @@ struct Emulator {
 
 impl Emulator {
     fn new(script: &str, debug: bool) -> Emulator {
-        println!("AX10 emu \nv0l-bootup\n");
-        println!("MasterBIOS Boot-Output-Input-System v0.1");
-        println!("Init Stack");
+        Self::debug_print(debug, &"AX10 emu \nv0l-bootup\n".to_string());
+        Self::debug_print(debug, &"MasterBIOS Boot-Output-Input-System v0.1".to_string());
+        Self::debug_print(debug, &"Init Stack".to_string());
 
         let stack = Vec::new();
 
-        println!("Init Registers");
+        Self::debug_print(debug, &"Init Registers".to_string());
 
         let registers = [0; 10];
 
-        println!("Init Pointer");
+        Self::debug_print(debug, &"Init Pointer".to_string());
         let pointer = 0;
 
-        println!("Init Ram");
+        Self::debug_print(debug, &"Init Ram".to_string());
         let mut ram = vec![0; 254 * 254];
 
-        println!("Installed Ram: {} bytes", ram.len());
+        Self::debug_print(debug, &("Installed Ram: ".to_string() + &ram.len().to_string() + " bytes"));
 
-        println!("Init Cache");
+        Self::debug_print(debug, &"Init Cache".to_string());
         let mut file = File::open(script).expect("File not found");
         let mut cache = Vec::new();
         file.read_to_end(&mut cache).expect("Error reading file");
 
-        println!("Cache entry;");
+        Self::debug_print(debug, &"Cache entry;".to_string());
         if cache.len() <= 255 {
             for i in 0..cache.len() {
-                print!("{:x} ", cache[i]);
+                if debug == true {
+                    print!("{:x} ", cache[i]);
+                }
                 ram[i] = cache[i];
             }
         } else {
             for i in 0..254 {
-                print!("{:x} ", cache[i]);
+                if debug == true {
+                    print!("{:x} ", cache[i]);
+                }
                 ram[i] = cache[i];
             }
         }
@@ -64,8 +66,10 @@ impl Emulator {
         }
     }
 
-    fn enable_debug(&mut self) {
-        self.debug = true;
+    fn debug_print(debug: bool, output: &String) {
+        if debug == true {
+            println!("{}", output);
+        }
     }
 
     fn run(&mut self) {
@@ -87,7 +91,7 @@ impl Emulator {
 
             match command {
                 0x0 => {
-                    println!("Socket Panick\nHalted emu");
+                    Self::debug_print(self.debug, &"Socket Panick\nHalted emu".to_string());
                     break;
                 }
                 0x1 => {
@@ -151,7 +155,7 @@ impl Emulator {
                     self.rgp();
                 }*/
                 _ => {
-                    println!("Unknown command");
+                    Self::debug_print(self.debug, &"Unknown command".to_string());
                 }
             }
             self.pointer += 1;
@@ -171,7 +175,9 @@ impl Emulator {
             self.pointer += 1;
         }
         self.pointer = new_pointer - 1;
-        println!("Jumping to address: 0x{:x}", new_pointer);
+        if self.debug == true {
+            println!("Jumping to address: 0x{:x}", new_pointer);
+        }
     }
 
     fn pushreg(&mut self) {
