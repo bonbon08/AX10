@@ -159,6 +159,10 @@ impl Emulator {
                     self.pointer += 1;
                     self.rgp();
                 }*/
+                0x11 => {
+                    self.pointer += 1;
+                    self.serprint();
+                }
                 _ => {
                     Self::debug_print(self.debug, &"Unknown command".to_string());
                 }
@@ -340,6 +344,18 @@ impl Emulator {
         } else {
             self.pointer += 1;
         }
+    }
+    fn serprint(&mut self) {
+        let typ = self.ram[self.pointer];
+        self.pointer += 1;
+        let char_to_pr = match typ {
+            0x0 => self.ram[self.pointer],
+            0x1 => self.get_register(),  
+            0x2 => self.get_ram_entry(),  
+            _   => 0,
+        };
+
+        self.term.print(char_to_pr);
     }
 }
 
