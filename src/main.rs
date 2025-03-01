@@ -1,8 +1,9 @@
 use std::fs::File;
 use std::io::Read;
 use std::{thread, time::Duration};
-use std::io::prelude::*;
-use std::net::TcpStream;
+use std::env;
+
+mod serial;
 
 struct Emulator {
     stack: Vec<u8>,
@@ -11,55 +12,53 @@ struct Emulator {
     pointer: usize,
     rh: u8,
     debug: bool,
-    gpu: GraficProcessor
+    term: serial::SerialTerminal,
 }
 
-struct GraficProcessor {
-    cores: u8,
-    mem: Vec<u8>,
-    memsize: u64,
-    stream: TcpStream,
-    pointer: usize,
-}
 
 impl Emulator {
-    fn new(script: &str) -> Emulator {
-        println!("AX10 emu \nv0l-bootup\n");
-        println!("MasterBIOS Boot-Output-Input-System v0.1");
-        println!("Init Stack");
+    fn new(script: &str, debug: bool) -> Emulator {
+        Self::debug_print(debug, &"AX10 emu \nv0l-bootup\n".to_string());
+        Self::debug_print(debug, &"MasterBIOS Boot-Output-Input-System v0.1".to_string());
+        Self::debug_print(debug, &"Init Stack".to_string());
 
         let stack = Vec::new();
 
-        println!("Init Registers");
+        Self::debug_print(debug, &"Init Registers".to_string());
 
         let registers = [0; 10];
 
-        println!("Init Pointer");
+        Self::debug_print(debug, &"Init Pointer".to_string());
         let pointer = 0;
 
-        println!("Init Ram");
+        Self::debug_print(debug, &"Init Ram".to_string());
         let mut ram = vec![0; 254 * 254];
 
-        println!("Installed Ram: {} bytes", ram.len());
+        Self::debug_print(debug, &("Installed Ram: ".to_string() + &ram.len().to_string() + " bytes"));
 
-        println!("Init Cache");
+        Self::debug_print(debug, &"Init Cache".to_string());
         let mut file = File::open(script).expect("File not found");
         let mut cache = Vec::new();
         file.read_to_end(&mut cache).expect("Error reading file");
 
-        println!("Cache entry;");
+        Self::debug_print(debug, &"Cache entry;".to_string());
         if cache.len() <= 255 {
             for i in 0..cache.len() {
-                print!("{:x} ", cache[i]);
+                if debug == true {
+                    print!("{:x} ", cache[i]);
+                }
                 ram[i] = cache[i];
             }
         } else {
             for i in 0..254 {
-                print!("{:x} ", cache[i]);
+                if debug == true {
+                    print!("{:x} ", cache[i]);
+                }
                 ram[i] = cache[i];
             }
         }
         println!("\n");
+        let term: serial::SerialTerminal =  serial::SerialTerminal::new(true, "AX10-chip".to_string());
 
         Emulator {
             stack,
@@ -67,13 +66,15 @@ impl Emulator {
             ram,
             pointer,
             rh: 0,
-            debug: false,
-            gpu: GraficProcessor::new(),
+            debug: debug,
+            term: term,
         }
     }
 
-    fn enable_debug(&mut self) {
-        self.debug = true;
+    fn debug_print(debug: bool, output: &String) {
+        if debug == true {
+            println!("{}", output);
+        }
     }
 
     fn run(&mut self) {
@@ -95,7 +96,7 @@ impl Emulator {
 
             match command {
                 0x0 => {
-                    println!("Socket Panick\nHalted emu");
+                    Self::debug_print(self.debug, &"Socket Panick\nHalted emu".to_string());
                     break;
                 }
                 0x1 => {
@@ -150,20 +151,23 @@ impl Emulator {
                     self.pointer += 1;
                     self.pullreg();
                 }
-                0xE => {
+/*                0xE => {
                     self.pointer += 1;
                     self.lgr();
                 }
                 0xF => {
                     self.pointer += 1;
                     self.rgp();
+                }*/
+                0x11 => {
+                    self.pointer += 1;
+                    self.serprint();
                 }
                 _ => {
-                    println!("Unknown command");
+                    Self::debug_print(self.debug, &"Unknown command".to_string());
                 }
             }
             self.pointer += 1;
-            self.gpu.run_proccess();
         }
     }
 
@@ -180,7 +184,9 @@ impl Emulator {
             self.pointer += 1;
         }
         self.pointer = new_pointer - 1;
-        println!("Jumping to address: 0x{:x}", new_pointer);
+        if self.debug == true {
+            println!("Jumping to address: 0x{:x}", new_pointer);
+        }
     }
 
     fn pushreg(&mut self) {
@@ -339,75 +345,25 @@ impl Emulator {
             self.pointer += 1;
         }
     }
-    fn lgr(&mut self) {
+    fn serprint(&mut self) {
+        let typ = self.ram[self.pointer];
         self.pointer += 1;
-        let nums_of_bit = self.ram[self.pointer];
-        self.pointer += 1;
-        for i in 0..nums_of_bit{
-            let i: usize = i.into();
-            self.gpu.mem[i] = self.ram[self.pointer+i]
-        } 
-        self.pointer += &nums_of_bit.into();
-    }
-    fn rgp(&mut self) {
-        self.pointer += 1;
-        self.gpu.pointer = 0;
-    }
-}
-
-impl GraficProcessor {
-    fn new() -> GraficProcessor{
-        let stream: TcpStream = TcpStream::connect("127.0.0.1:44523").expect("Error in connecting to Display-Server");
-        let gpu = GraficProcessor {
-            memsize: 23040,
-            cores: 1,
-            mem: vec![0; 23040],
-            stream: stream,
-            pointer: 0,
+        let char_to_pr = match typ {
+            0x0 => self.ram[self.pointer],
+            0x1 => self.get_register(),  
+            0x2 => self.get_ram_entry(),  
+            _   => 0,
         };
-        gpu
-    }
-    fn paint_pixel(&mut self) {
-        self.pointer += 1;
-        let x = self.mem[self.pointer];
-        self.pointer += 1;
-        let y = self.mem[self.pointer];
-        self.pointer += 1;
-        let r = self.mem[self.pointer];
-        self.pointer += 1;
-        let g = self.mem[self.pointer];
-        self.pointer += 1;
-        let b = self.mem[self.pointer];
-        let color = format!("{:X},{:X},{:X}", r, g,b);
-        let message: String = format!("1 {} {} {}!", x, y, color);
-        self.stream.write(message.as_bytes()).expect("Server down");
-    }
-    fn clear_screen(&mut self) {
-        let message : String = "0 0 0 0!".to_owned();
-        self.stream.write(message.as_bytes()).expect("Server down");
-    }
-    fn run_proccess(&mut self) {
-        let command = self.mem[self.pointer];
-        match command{
-            0x1 => {
-                self.clear_screen();
-            }
-            0x2 => {
-                self.paint_pixel();
-            }
-            _ => {
-                println!("Unknown command");
-            }
-        }
-        self.pointer +=1
 
+        self.term.print(char_to_pr);
     }
 }
 
 
 fn main() {
-    let mut emu = Emulator::new("out.bin");
+    let args: Vec<String> = env::args().collect();
+    let debug = args.contains(&"--debug".to_string());
+    let mut emu = Emulator::new("out.bin", debug);
     #[cfg(debug_assertions)]
-    emu.enable_debug();
     emu.run();
 }

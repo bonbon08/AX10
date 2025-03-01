@@ -129,3 +129,8 @@ for line in lines:
         case "pull":
             outfile.write(b"\x0d")
             outfile.write(getregister(entrys[1]))
+        case "spr":
+            outfile.write(b"\x11")
+            t1, t2 = gettypeandcontent(entrys[1], entrys[2])
+            outfile.write(t1)
+            outfile.write(t2)
