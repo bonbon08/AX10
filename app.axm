@@ -1,17 +1,7 @@
-push int 27
-mov ah int 4
-pull ah
-add ah int 8
-push int 8
-push int 9
-pull ah
-mov bh reg ah
-pull ah
-push reg ah
-push reg bh
-pull ah
-spr int 1
-spr int 2
+mov ah int 0
+mov al int 80
+spr reg ah
 spr int 80
-spr int 3
-spr int 5
+add ah int 1
+cmp ah reg al
+jin 1 4
