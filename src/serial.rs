@@ -90,6 +90,7 @@ impl SerialTerminal {
             (0x4c, ":".to_string()),
             (0x4e, "-".to_string()),
             (0x4f, "_".to_string()),
+            (0x50, "\n".to_string()),
         ]);
         
         SerialTerminal {

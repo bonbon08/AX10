@@ -12,3 +12,6 @@ push reg bh
 pull ah
 spr int 1
 spr int 2
+spr int 80
+spr int 3
+spr int 5
