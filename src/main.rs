@@ -10,7 +10,6 @@ struct Emulator {
     registers: [u8; 10],
     ram: Vec<u8>,
     pointer: usize,
-    rh: u8,
     debug: bool,
     term: serial::SerialTerminal,
 }
@@ -65,7 +64,6 @@ impl Emulator {
             registers,
             ram,
             pointer,
-            rh: 0,
             debug: debug,
             term: term,
         }
@@ -322,16 +320,15 @@ impl Emulator {
             0x2 => self.get_ram_entry(),        
             _ => 0,
         };
-
-        if entry == res {
-            self.rh = 1; 
+        if res==entry {
+            self.registers[8] = 1; 
         } else {
-            self.rh = 0; 
+            self.registers[8]= 0; 
         }
     }
 
     fn jie(&mut self) {
-        if self.rh == 1 {
+        if self.registers[8] == 1 {
             self.jmp();
         } else {
             self.pointer += 1;
@@ -339,7 +336,7 @@ impl Emulator {
     }
 
     fn jin(&mut self) {
-        if self.rh == 0 {
+        if self.registers[8] == 0 {
             self.jmp();
         } else {
             self.pointer += 1;
@@ -354,7 +351,6 @@ impl Emulator {
             0x2 => self.get_ram_entry(),  
             _   => 0,
         };
-
         self.term.print(char_to_pr);
     }
 }
