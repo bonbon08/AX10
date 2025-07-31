@@ -4,4 +4,4 @@ spr reg ah
 spr int 80
 add ah int 1
 cmp ah reg al
-jin 1 4
+#jin 1 4

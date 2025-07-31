@@ -9,6 +9,8 @@ struct Emulator {
     stack: Vec<u8>,
     registers: [u8; 10],
     ram: Vec<u8>,
+    eeprom: Vec<u8>,
+    codebase: Vec<u8>,
     pointer: usize,
     debug: bool,
     term: serial::SerialTerminal,
@@ -32,9 +34,10 @@ impl Emulator {
 
         Self::debug_print(debug, &"Init Ram".to_string());
         let mut ram = vec![0; 254 * 254];
-
         Self::debug_print(debug, &("Installed Ram: ".to_string() + &ram.len().to_string() + " bytes"));
-
+        Self::debug_print(debug, &"Init EEPROM".to_string());
+        let mut eeprom: Vec<u8> = vec![0; 254 * 254];
+        Self::debug_print(debug, &("Installed EEPROM: ".to_string() + &eeprom.len().to_string() + " bytes"));
         Self::debug_print(debug, &"Init Cache".to_string());
         let mut file = File::open(script).expect("File not found");
         let mut cache = Vec::new();
@@ -46,16 +49,17 @@ impl Emulator {
                 if debug == true {
                     print!("{:x} ", cache[i]);
                 }
-                ram[i] = cache[i];
+                eeprom[i] = cache[i];
             }
         } else {
             for i in 0..254 {
                 if debug == true {
                     print!("{:x} ", cache[i]);
                 }
-                ram[i] = cache[i];
+                eeprom[i] = cache[i];
             }
         }
+        let mut codebase:Vec<u8> = eeprom.clone();
         println!("\n");
         let term: serial::SerialTerminal =  serial::SerialTerminal::new(true, "AX10-chip".to_string());
 
@@ -63,6 +67,8 @@ impl Emulator {
             stack,
             registers,
             ram,
+            eeprom,
+            codebase,
             pointer,
             debug: debug,
             term: term,
@@ -77,7 +83,7 @@ impl Emulator {
 
     fn run(&mut self) {
         loop {
-            let command = self.ram[self.pointer];
+            let command = self.codebase[self.pointer];
             if self.debug==true {
                 println!("Command: 0x{:x}", command);
                 println!("AH: {}", self.registers[0]);
@@ -170,15 +176,15 @@ impl Emulator {
     }
 
     fn wait(&self) {
-        thread::sleep(Duration::from_secs(self.ram[self.pointer] as u64));
+        thread::sleep(Duration::from_secs(self.codebase[self.pointer] as u64));
     }
 
     fn jmp(&mut self) {
-        let byte_num = self.ram[self.pointer] as usize;
+        let byte_num = self.codebase[self.pointer] as usize;
         self.pointer += 1;
         let mut new_pointer = 0;
         for _ in 0..byte_num {
-            new_pointer = (new_pointer << 8) | self.ram[self.pointer] as usize;
+            new_pointer = (new_pointer << 8) | self.codebase[self.pointer] as usize;
             self.pointer += 1;
         }
         self.pointer = new_pointer - 1;
@@ -188,10 +194,10 @@ impl Emulator {
     }
 
     fn pushreg(&mut self) {
-        let typ = self.ram[self.pointer];
+        let typ = self.codebase[self.pointer];
         self.pointer += 1;
         let res = match typ {
-            0x0 => self.ram[self.pointer],        
+            0x0 => self.codebase[self.pointer],        
             0x1 => self.get_register(),    
             0x2 => self.get_ram_entry(),     
             _ => 0,               
@@ -199,18 +205,18 @@ impl Emulator {
         self.stack.push(res);
     }
     fn pullreg(&mut self) {
-        let register = self.ram[self.pointer] as usize;
+        let register = self.codebase[self.pointer] as usize;
         let res: u8  = self.stack.pop().expect("");
         self.set_register(register, res);
     } 
 
     fn mov(&mut self) {
-        let register = self.ram[self.pointer] as usize;
+        let register = self.codebase[self.pointer] as usize;
         self.pointer += 1;
-        let typ = self.ram[self.pointer];
+        let typ = self.codebase[self.pointer];
         self.pointer += 1;
         let res = match typ {
-            0x0 => self.ram[self.pointer],        
+            0x0 => self.codebase[self.pointer],        
             0x2 => self.get_register(),    
             0x3 => self.get_ram_entry(),     
             _ => 0,               
@@ -219,13 +225,13 @@ impl Emulator {
     }
 
     fn add(&mut self) {
-        let register = self.ram[self.pointer] as usize;
+        let register = self.codebase[self.pointer] as usize;
         let register_entry = self.get_register();
         self.pointer += 1;
-        let typ = self.ram[self.pointer];
+        let typ = self.codebase[self.pointer];
         self.pointer += 1;
         let res = match typ {
-            0x0 => register_entry.wrapping_add(self.ram[self.pointer]), 
+            0x0 => register_entry.wrapping_add(self.codebase[self.pointer]), 
             0x1 => register_entry.wrapping_add(self.get_register()),  
             0x2 => register_entry.wrapping_add(self.get_ram_entry()), 
             _ => 0,
@@ -235,13 +241,13 @@ impl Emulator {
     }
 
     fn sub(&mut self) {
-        let register = self.ram[self.pointer] as usize;
+        let register = self.codebase[self.pointer] as usize;
         let register_entry = self.get_register();
         self.pointer += 1;
-        let typ = self.ram[self.pointer];
+        let typ = self.codebase[self.pointer];
         self.pointer += 1;
         let res = match typ {
-            0x0 => register_entry.wrapping_sub(self.ram[self.pointer]),
+            0x0 => register_entry.wrapping_sub(self.codebase[self.pointer]),
             0x1 => register_entry.wrapping_sub(self.get_register()),   
             0x2 => register_entry.wrapping_sub(self.get_ram_entry()),   
             _ => 0,
@@ -251,13 +257,13 @@ impl Emulator {
     }
 
     fn div(&mut self) {
-        let register = self.ram[self.pointer] as usize;
+        let register = self.codebase[self.pointer] as usize;
         let register_entry = self.get_register();
         self.pointer += 1;
-        let typ = self.ram[self.pointer];
+        let typ = self.codebase[self.pointer];
         self.pointer += 1;
         let res = match typ {
-            0x0 => register_entry / self.ram[self.pointer], 
+            0x0 => register_entry / self.codebase[self.pointer], 
             0x1 => register_entry / self.get_register(),  
             0x2 => register_entry / self.get_ram_entry(),  
             _ => 0,
@@ -266,7 +272,7 @@ impl Emulator {
         self.set_register(register, res);
     }
     fn get_register(&self) -> u8 {
-        let register = self.ram[self.pointer] as usize;
+        let register = self.codebase[self.pointer] as usize;
         self.registers[register]
     }
     fn set_register(&mut self, register: usize, value: u8) {
@@ -275,18 +281,18 @@ impl Emulator {
         }
     }
     fn get_ram_entry(&self) -> u8 {
-        let address = self.ram[self.pointer] as usize;
+        let address = self.codebase[self.pointer] as usize;
         self.ram[address]
     }
 
     fn mul(&mut self) {
-        let register = self.ram[self.pointer] as usize;
+        let register = self.codebase[self.pointer] as usize;
         let register_entry = self.get_register();
         self.pointer += 1;
-        let typ = self.ram[self.pointer];
+        let typ = self.codebase[self.pointer];
         self.pointer += 1;
         let res = match typ {
-            0x0 => register_entry.wrapping_mul(self.ram[self.pointer]),
+            0x0 => register_entry.wrapping_mul(self.codebase[self.pointer]),
             0x1 => register_entry.wrapping_mul(self.get_register()),  
             0x2 => register_entry.wrapping_mul(self.get_ram_entry()),  
             _ => 0,
@@ -296,12 +302,12 @@ impl Emulator {
     }
 
     fn writeram(&mut self) {
-        let address = self.ram[self.pointer] as usize;
+        let address = self.codebase[self.pointer] as usize;
         self.pointer += 1;
-        let typ = self.ram[self.pointer];
+        let typ = self.codebase[self.pointer];
         self.pointer += 1;
         let res = match typ {
-            0x0 => self.ram[self.pointer],    
+            0x0 => self.codebase[self.pointer],    
             0x1 => self.get_register(),      
             0x2 => self.get_ram_entry(),       
             _ => 0,
@@ -312,10 +318,10 @@ impl Emulator {
     fn cmp(&mut self) {
         let entry = self.get_register();
         self.pointer += 1;
-        let typ = self.ram[self.pointer];
+        let typ = self.codebase[self.pointer];
         self.pointer += 1;
         let res = match typ {
-            0x0 => self.ram[self.pointer],  
+            0x0 => self.codebase[self.pointer],  
             0x1 => self.get_register(),     
             0x2 => self.get_ram_entry(),        
             _ => 0,
@@ -343,10 +349,10 @@ impl Emulator {
         }
     }
     fn serprint(&mut self) {
-        let typ = self.ram[self.pointer];
+        let typ = self.codebase[self.pointer];
         self.pointer += 1;
         let char_to_pr = match typ {
-            0x0 => self.ram[self.pointer],
+            0x0 => self.codebase[self.pointer],
             0x1 => self.get_register(),  
             0x2 => self.get_ram_entry(),  
             _   => 0,
